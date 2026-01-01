@@ -1,3 +1,13 @@
+use std::io::{self, Write};
+
 fn main() {
-    println!("rshell");
+    print!("$ ");
+    io::stdout()
+        .flush().unwrap();
+    
+    let mut input = String::new();
+    io::stdin()
+        .read_line(&mut input).expect("Unnable to read line");
+    
+    println!("{}", &input);
 }
