@@ -13,7 +13,7 @@ fn main() {
     let command = input.trim();
     
     match command {
-        "exit" =>break,
+        "exit" => break,
         _ =>  println!("{}: command not found", &command),
     }
     
