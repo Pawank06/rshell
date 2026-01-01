@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 fn main() {
+    loop {    
     print!("$ ");
     io::stdout()
         .flush().unwrap();
@@ -10,4 +11,5 @@ fn main() {
         .read_line(&mut input).expect("Unable to read line");
     
     println!("{}: command not found", &input.trim());
+    }
 }
