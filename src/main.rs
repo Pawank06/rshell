@@ -7,7 +7,7 @@ fn main() {
     
     let mut input = String::new();
     io::stdin()
-        .read_line(&mut input).expect("Unnable to read line");
+        .read_line(&mut input).expect("Unable to read line");
     
     println!("{}", &input);
 }
