@@ -9,5 +9,5 @@ fn main() {
     io::stdin()
         .read_line(&mut input).expect("Unable to read line");
     
-    println!("{}", &input);
+    println!("{}: command not found", &input.trim());
 }
