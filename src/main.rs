@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 fn main() {
+    loop {    
     print!("$ ");
     io::stdout()
         .flush().unwrap();
@@ -9,5 +10,12 @@ fn main() {
     io::stdin()
         .read_line(&mut input).expect("Unable to read line");
     
-    println!("{}", &input);
+    let command = input.trim();
+    
+    match command {
+        "exit" => break,
+        _ =>  println!("{}: command not found", &command),
+    }
+    
+    }
 }
