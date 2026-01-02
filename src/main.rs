@@ -10,11 +10,33 @@ fn main() {
     io::stdin()
         .read_line(&mut input).expect("Unable to read line");
     
-    let command = input.trim();
+    let parts: Vec<&str> = input.split_whitespace().collect();
     
-    match command {
+    if parts.is_empty() {
+        continue;
+    }
+    
+    match parts[0] {
         "exit" => break,
-        _ =>  println!("{}: command not found", &command),
+        "echo" => {
+            let args = &parts[1..];
+            println!("{}", args.join(" "));
+        },
+        "type" => {
+            if parts.len() < 2 {
+                continue;
+            }
+            
+            let builtin = ["exit", "echo", "type"];
+            let query = &parts[1];
+            
+            if builtin.contains(query) {
+                println!("{} is a rshell builtin", query);
+            } else {
+                println!("{} not found", query);
+            }
+        },
+        _ =>  println!("{}: command not found", input.trim()),
     }
     
     }
