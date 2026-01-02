@@ -23,7 +23,11 @@ fn main() {
             println!("{}", args.join(" "));
         },
         "type" => {
-            let builtin = ["exit", "echo"];
+            if parts.len() < 2 {
+                continue;
+            }
+            
+            let builtin = ["exit", "echo", "type"];
             let query = &parts[1];
             
             if builtin.contains(query) {
