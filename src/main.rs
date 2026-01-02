@@ -10,11 +10,19 @@ fn main() {
     io::stdin()
         .read_line(&mut input).expect("Unable to read line");
     
-    let command = input.trim();
+    let parts: Vec<&str> = input.split_whitespace().collect();
     
-    match command {
+    if parts.is_empty() {
+        continue;
+    }
+    
+    match parts[0] {
         "exit" => break,
-        _ =>  println!("{}: command not found", &command),
+        "echo" => {
+            let args = &parts[1..];
+            println!("{}", args.join(" "));
+        },
+        _ =>  println!("{}: command not found", input.trim()),
     }
     
     }
