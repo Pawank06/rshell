@@ -54,7 +54,7 @@ fn main() {
                            
                            let mode = metadata.permissions().mode();
                            
-                           if mode & 0o11 != 0 {
+                           if mode & 0o111 != 0 {
                                println!("{} is {}", query, full_path.display());
                                found = true;
                                break;
