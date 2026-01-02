@@ -22,6 +22,16 @@ fn main() {
             let args = &parts[1..];
             println!("{}", args.join(" "));
         },
+        "type" => {
+            let builtin = ["exit", "echo"];
+            let query = &parts[1];
+            
+            if builtin.contains(query) {
+                println!("{} is a rshell builtin", query);
+            } else {
+                println!("{} not found", query);
+            }
+        },
         _ =>  println!("{}: command not found", input.trim()),
     }
     
