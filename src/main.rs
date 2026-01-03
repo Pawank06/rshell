@@ -85,7 +85,7 @@ fn main() {
                 Ok(val) => {
                     let mut found = false;
                    for dir in val.split(":") {
-                       let full_path = Path::new(&dir).join(&command);
+                       let full_path = Path::new(&dir).join(command);
                        
                        if !full_path.exists() {
                            continue;
