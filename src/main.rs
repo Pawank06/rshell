@@ -73,10 +73,12 @@ fn main() {
         },
         _ =>  {
             if command.contains("/") {
-                Command::new(command)
+                match Command::new(command)
                     .args(&parts[1..])
-                    .status()
-                    .unwrap();
+                    .status() {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("{}: {}", command, e),
+                    };
                 
                     continue;
             }
@@ -99,10 +101,12 @@ fn main() {
                        let mode = metadata.permissions().mode();
                        
                        if mode & 0o111 != 0 {
-                           Command::new(full_path)
+                           match Command::new(full_path)
                                .args(&parts[1..])
-                               .status()
-                               .unwrap();
+                               .status() {
+                                   Ok(_) => {},
+                                   Err(err) => eprintln!("{}: {}", command, err),
+                               }
                            found = true;
                            break;
                        }
