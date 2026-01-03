@@ -3,6 +3,7 @@ use std::env;
 use std::path::Path;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::process::Command;
 
 fn main() {
     loop {    
@@ -20,7 +21,9 @@ fn main() {
         continue;
     }
     
-    match parts[0] {
+    let command = parts[0];
+    
+    match command {
         "exit" => break,
         "echo" => {
             let args = &parts[1..];
@@ -30,18 +33,17 @@ fn main() {
             if parts.len() < 2 {
                 continue;
             }
+            let query = &parts[1];
             
             let builtin = ["exit", "echo", "type"];
-            let query = &parts[1];
             
             if builtin.contains(query) {
                 println!("{} is a rshell builtin", query);
             } else {
                 match env::var("PATH") {
                     Ok(val) => {
-                       let paths: Vec<&str> = val.split(":").collect();
                        let mut found = false;
-                       for dir in paths {
+                       for dir in val.split(":") {
                            let full_path = Path::new(dir).join(query);
                            if !full_path.exists() {
                                continue;
@@ -69,7 +71,49 @@ fn main() {
                 }
             }
         },
-        _ =>  println!("{}: command not found", input.trim()),
+        _ =>  {
+            if command.contains("/") {
+                Command::new(command)
+                    .args(&parts[1..])
+                    .status()
+                    .unwrap();
+                
+                continue;
+            }
+            
+            match env::var("PATH") {
+                Ok(val) => {
+                    let mut found = false;
+                   for dir in val.split(":") {
+                       let full_path = Path::new(&dir).join(&command);
+                       
+                       if !full_path.exists() {
+                           continue;
+                       }
+                       
+                       let metadata = match fs::metadata(&full_path) {
+                           Ok(m) => m,
+                           Err(_) => continue
+                       };
+                       
+                       let mode = metadata.permissions().mode();
+                       
+                       if mode & 0o111 != 0 {
+                           Command::new(full_path)
+                               .args(&parts[1..])
+                               .status()
+                               .unwrap();
+                           found = true;
+                           break;
+                       }
+                   } 
+                   if !found {
+                       println!("{}: command not found", command);
+                   }
+                },
+                Err(e) => println!("Coudn't find val {}", e)
+            }
+        }
     }
     
     }
