@@ -42,30 +42,30 @@ fn main() {
             } else {
                 match env::var("PATH") {
                     Ok(val) => {
-                       let mut found = false;
-                       for dir in val.split(":") {
-                           let full_path = Path::new(dir).join(query);
-                           if !full_path.exists() {
-                               continue;
-                           }
+                        let mut found = false;
+                        for dir in val.split(":") {
+                            let full_path = Path::new(dir).join(query);
+                            if !full_path.exists() {
+                                continue;
+                            }
                            
-                           let metadata = match fs::metadata(&full_path) {
-                               Ok(m) => m,
-                               Err(_) => continue
-                           };
-                           
-                           let mode = metadata.permissions().mode();
-                           
-                           if mode & 0o111 != 0 {
-                               println!("{} is {}", query, full_path.display());
-                               found = true;
-                               break;
-                           }                          
-                       }
+                            let metadata = match fs::metadata(&full_path) {
+                                Ok(m) => m,
+                                Err(_) => continue
+                            };
+                            
+                            let mode = metadata.permissions().mode();
+                            
+                            if mode & 0o111 != 0 {
+                                println!("{} is {}", query, full_path.display());
+                                found = true;
+                                break;
+                            }                          
+                        }
                        
-                       if !found {
-                           println!("{}: not found", query);
-                       }
+                        if !found {
+                            println!("{}: not found", query);
+                        }
                     },
                     Err(e) => println!("Couldn't find val {}", e)
                 }
@@ -78,7 +78,7 @@ fn main() {
                     .status()
                     .unwrap();
                 
-                continue;
+                    continue;
             }
             
             match env::var("PATH") {
