@@ -36,7 +36,7 @@ fn main() {
             }
             let query = &parts[1];
             
-            let builtin = ["exit", "echo", "type"];
+            let builtin = ["exit", "echo", "type", "pwd"];
             
             if builtin.contains(query) {
                 println!("{} is a rshell builtin", query);
