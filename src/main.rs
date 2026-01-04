@@ -36,7 +36,7 @@ fn main() {
             }
             let query = &parts[1];
             
-            let builtin = ["exit", "echo", "type"];
+            let builtin = ["exit", "echo", "type", "pwd"];
             
             if builtin.contains(query) {
                 println!("{} is a rshell builtin", query);
@@ -71,6 +71,13 @@ fn main() {
                     Err(e) => println!("Couldn't find val {}", e)
                 }
             }
+        },
+        "pwd" => {
+            match env::current_dir(){
+              Ok(val) => println!("{}", val.display()),
+              Err(e) => eprintln!("pwd: {}", e),
+          }
+          
         },
         _ =>  {
             if command.contains("/") {
