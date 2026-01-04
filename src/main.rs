@@ -1,5 +1,6 @@
 use std::io::{self, Write};
 use std::env;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -101,7 +102,8 @@ fn main() {
                        let mode = metadata.permissions().mode();
                        
                        if mode & 0o111 != 0 {
-                           match Command::new(full_path)
+                           match Command::new(&full_path)
+                               .arg0(command)
                                .args(&parts[1..])
                                .status() {
                                    Ok(_) => {},
