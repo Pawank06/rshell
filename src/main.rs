@@ -72,6 +72,13 @@ fn main() {
                 }
             }
         },
+        "pwd" => {
+            match env::current_dir(){
+              Ok(val) => println!("{}", val.display()),
+              Err(_) => continue,
+          }
+          
+        },
         _ =>  {
             if command.contains("/") {
                 match Command::new(command)
