@@ -75,7 +75,7 @@ fn main() {
         "pwd" => {
             match env::current_dir(){
               Ok(val) => println!("{}", val.display()),
-              Err(_) => continue,
+              Err(e) => eprintln!("pwd: {}", e),
           }
           
         },
