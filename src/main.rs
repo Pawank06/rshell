@@ -14,7 +14,7 @@ fn main() {
     
     let mut input = String::new();
     io::stdin()
-        .read_line(&mut input).expect("Unable to read line");
+        .read_line(&mut input).expect("unable to read line");
     
     let parts: Vec<&str> = input.split_whitespace().collect();
     
@@ -68,7 +68,7 @@ fn main() {
                             println!("{}: not found", query);
                         }
                     },
-                    Err(e) => println!("Couldn't find val {}", e)
+                    Err(e) => println!("couldn't find val {}", e)
                 }
             }
         },
@@ -124,7 +124,7 @@ fn main() {
                        println!("{}: command not found", command);
                    }
                 },
-                Err(e) => println!("Couldn't find val {}", e)
+                Err(e) => println!("couldn't find val {}", e)
             }
         }
     }
