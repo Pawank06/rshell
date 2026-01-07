@@ -76,6 +76,29 @@ fn main() {
                 Ok(val) => println!("{}", val.display()),
                 Err(e) => eprintln!("pwd: {}", e),
             },
+            "cd" => {
+                if parts.len() < 2 {
+                    continue;
+                }
+
+                let query = parts[1];
+
+                if query.starts_with("/") {
+                    let args = &parts[1..];
+                    let full_path = args.join(" ");
+
+                    let path = Path::new(&full_path);
+                    if path.exists() && path.is_dir() {
+                        if let Err(_) = env::set_current_dir(path) {
+                            println!("cd: {}: No such file or directory", path.display());
+                        }
+                    }
+                } else {
+                    let args = &parts[1..];
+                    let full_path = args.join(" ");
+                    println!("cd: {}: No such file or directory", full_path);
+                }
+            }
             _ => {
                 if command.contains("/") {
                     match Command::new(command).args(&parts[1..]).status() {
