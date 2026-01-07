@@ -77,8 +77,6 @@ fn main() {
                 Err(e) => eprintln!("pwd: {}", e),
             },
             "cd" => {
-                // check if the path is absolute or not
-
                 if parts.len() < 2 {
                     continue;
                 }
@@ -86,20 +84,20 @@ fn main() {
                 let query = parts[1];
 
                 if query.starts_with("/") {
-                    let mut args = &parts[1..];
+                    let args = &parts[1..];
                     let full_path = args.join(" ");
 
                     let path = Path::new(&full_path);
-                    println!("path is {}", path.display());
                     if path.exists() && path.is_dir() {
                         if let Err(_) = env::set_current_dir(path) {
-                            println!("{} path don't exits", path.display());
+                            println!("cd: {}: No such file or directory", path.display());
                         }
                     }
                 } else {
-                    println!("path dont exits");
+                    let args = &parts[1..];
+                    let full_path = args.join(" ");
+                    println!("cd: {}: No such file or directory", full_path);
                 }
-                // else print that path don't exists<S-D-2>
             }
             _ => {
                 if command.contains("/") {
