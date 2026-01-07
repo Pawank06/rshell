@@ -88,9 +88,13 @@ fn main() {
                     let full_path = args.join(" ");
 
                     let path = Path::new(&full_path);
-                    if path.exists() && path.is_dir() {
-                        if let Err(_) = env::set_current_dir(path) {
-                            println!("cd: {}: No such file or directory", path.display());
+                    if path.exists() {
+                        println!("cd: {}: No such file or directory", full_path);
+                    } else if !path.dir() {
+                        println!("cd: {}: Not a directory", full_path);
+                    } else {
+                        if let Err(e) = env::set_current_dir(full_path) {
+                            println!("cd: {} {}", path.display(), e);
                         }
                     }
                 } else {
