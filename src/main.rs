@@ -147,7 +147,7 @@ fn main() {
                             println!("{}: Command not found", command);
                         }
                     }
-                    Err(e) => println!("couldn't find val {}", e),
+                    Err(e) => println!("Couldn't find val {}", e),
                 }
             }
         }
