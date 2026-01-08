@@ -68,7 +68,7 @@ fn main() {
                                 println!("{}: not found", query);
                             }
                         }
-                        Err(e) => eprintln!("couldn't read PATH environment variable: {}", e),
+                        Err(e) => eprintln!("Couldn't read PATH environment variable: {}", e),
                     }
                 }
             }
