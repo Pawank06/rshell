@@ -94,7 +94,7 @@ fn main() {
                         println!("cd: {}: Not a directory", full_path);
                     } else {
                         if let Err(e) = env::set_current_dir(&full_path) {
-                            println!("cd: {} {}", path.display(), e);
+                            eprintln!("cd: {} {}", path.display(), e);
                         }
                     }
                 } else {
