@@ -84,12 +84,18 @@ fn main() {
                 let args = &parts[1..];
                 let full_path = args.join(" ");
                 let path = Path::new(&full_path);
-
-                if path == "~" {
+                let path_str = full_path.as_str();
+                if path_str == "~" || path_str.starts_with("~/") {
                     match env::var("HOME") {
                         Ok(val) => {
-                            if let Err(e) = env::set_current_dir(&val) {
-                                eprintln!("cd: {} {}", &val, e)
+                            let expanded = if path_str == "~" {
+                                val.clone()
+                            } else {
+                                path_str.replacen("~", &val, 1)
+                            };
+
+                            if let Err(e) = env::set_current_dir(&expanded) {
+                                eprintln!("cd: {} {}", &expanded, e)
                             }
                         }
                         Err(e) => eprintln!("Couldn't able to read env variable HOME: {}", e),
