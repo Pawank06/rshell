@@ -81,26 +81,18 @@ fn main() {
                     continue;
                 }
 
-                let query = parts[1];
+                let args = &parts[1..];
+                let full_path = args.join(" ");
 
-                if query.starts_with("/") {
-                    let args = &parts[1..];
-                    let full_path = args.join(" ");
-
-                    let path = Path::new(&full_path);
-                    if !path.exists() {
-                        println!("cd: {}: No such file or directory", full_path);
-                    } else if !path.is_dir() {
-                        println!("cd: {}: Not a directory", full_path);
-                    } else {
-                        if let Err(e) = env::set_current_dir(&full_path) {
-                            eprintln!("cd: {} {}", path.display(), e);
-                        }
-                    }
-                } else {
-                    let args = &parts[1..];
-                    let full_path = args.join(" ");
+                let path = Path::new(&full_path);
+                if !path.exists() {
                     println!("cd: {}: No such file or directory", full_path);
+                } else if !path.is_dir() {
+                    println!("cd: {}: Not a directory", full_path);
+                } else {
+                    if let Err(e) = env::set_current_dir(&full_path) {
+                        eprintln!("cd: {} {}", path.display(), e);
+                    }
                 }
             }
             _ => {
