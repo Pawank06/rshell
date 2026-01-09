@@ -36,7 +36,7 @@ fn main() {
                 }
                 let query = &parts[1];
 
-                let builtin = ["exit", "echo", "type", "pwd"];
+                let builtin = ["exit", "echo", "type", "pwd", "cd"];
 
                 if builtin.contains(query) {
                     println!("{} is a rshell builtin", query);
@@ -68,7 +68,7 @@ fn main() {
                                 println!("{}: not found", query);
                             }
                         }
-                        Err(e) => eprintln!("Unable to read PATH environment variable: {}", e),
+                        Err(e) => eprintln!("cd: Unable to read PATH environment variable: {}", e),
                     }
                 }
             }
