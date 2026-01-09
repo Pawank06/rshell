@@ -68,7 +68,7 @@ fn main() {
                                 println!("{}: not found", query);
                             }
                         }
-                        Err(e) => eprintln!("Couldn't read PATH environment variable: {}", e),
+                        Err(e) => eprintln!("Unable to read PATH environment variable: {}", e),
                     }
                 }
             }
@@ -98,7 +98,7 @@ fn main() {
                                 eprintln!("cd: {} {}", &expanded, e)
                             }
                         }
-                        Err(e) => eprintln!("Couldn't able to read env variable HOME: {}", e),
+                        Err(e) => eprintln!("cd: Unable to read HOME environment variable: {}", e),
                     }
                 } else {
                     if !path.exists() {
