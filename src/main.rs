@@ -84,7 +84,7 @@ fn main() {
                 let args = &parts[1..];
                 let full_path = args.join(" ");
                 let path = Path::new(&full_path);
-                println!("path {}", path.display());
+
                 if path == "~" {
                     match env::var("HOME") {
                         Ok(val) => {
@@ -94,14 +94,15 @@ fn main() {
                         }
                         Err(e) => eprintln!("Couldn't able to read env variable HOME: {}", e),
                     }
-                }
-                if !path.exists() {
-                    println!("cd: {}: No such file or directory", full_path);
-                } else if !path.is_dir() {
-                    println!("cd: {}: Not a directory", full_path);
                 } else {
-                    if let Err(e) = env::set_current_dir(&full_path) {
-                        eprintln!("cd: {} {}", path.display(), e);
+                    if !path.exists() {
+                        println!("cd: {}: No such file or directory", full_path);
+                    } else if !path.is_dir() {
+                        println!("cd: {}: Not a directory", full_path);
+                    } else {
+                        if let Err(e) = env::set_current_dir(&full_path) {
+                            eprintln!("cd: {} {}", path.display(), e);
+                        }
                     }
                 }
             }
