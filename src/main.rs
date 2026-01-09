@@ -81,7 +81,6 @@ fn main() {
                     continue;
                 }
 
-                let query = parts[1];
                 let args = &parts[1..];
                 let full_path = args.join(" ");
 
