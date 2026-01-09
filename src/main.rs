@@ -36,7 +36,7 @@ fn main() {
                 }
                 let query = &parts[1];
 
-                let builtin = ["exit", "echo", "type", "pwd"];
+                let builtin = ["exit", "echo", "type", "pwd", "cd"];
 
                 if builtin.contains(query) {
                     println!("{} is a rshell builtin", query);
@@ -68,7 +68,7 @@ fn main() {
                                 println!("{}: not found", query);
                             }
                         }
-                        Err(e) => eprintln!("Couldn't read PATH environment variable: {}", e),
+                        Err(e) => eprintln!("cd: Unable to read PATH environment variable: {}", e),
                     }
                 }
             }
@@ -83,15 +83,32 @@ fn main() {
 
                 let args = &parts[1..];
                 let full_path = args.join(" ");
-
                 let path = Path::new(&full_path);
-                if !path.exists() {
-                    println!("cd: {}: No such file or directory", full_path);
-                } else if !path.is_dir() {
-                    println!("cd: {}: Not a directory", full_path);
+                let path_str = full_path.as_str();
+                if path_str == "~" || path_str.starts_with("~/") {
+                    match env::var("HOME") {
+                        Ok(val) => {
+                            let expanded = if path_str == "~" {
+                                val.clone()
+                            } else {
+                                path_str.replacen("~", &val, 1)
+                            };
+
+                            if let Err(e) = env::set_current_dir(&expanded) {
+                                eprintln!("cd: {} {}", &expanded, e)
+                            }
+                        }
+                        Err(e) => eprintln!("cd: Unable to read HOME environment variable: {}", e),
+                    }
                 } else {
-                    if let Err(e) = env::set_current_dir(&full_path) {
-                        eprintln!("cd: {} {}", path.display(), e);
+                    if !path.exists() {
+                        println!("cd: {}: No such file or directory", full_path);
+                    } else if !path.is_dir() {
+                        println!("cd: {}: Not a directory", full_path);
+                    } else {
+                        if let Err(e) = env::set_current_dir(&full_path) {
+                            eprintln!("cd: {} {}", path.display(), e);
+                        }
                     }
                 }
             }
