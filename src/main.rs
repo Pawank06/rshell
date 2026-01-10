@@ -39,7 +39,7 @@ fn main() {
                 let builtin = ["exit", "echo", "type", "pwd", "cd"];
 
                 if builtin.contains(query) {
-                    println!("{} is a rshell builtin", query);
+                    println!("{} is a shell builtin", query);
                 } else {
                     match env::var("PATH") {
                         Ok(val) => {
@@ -68,7 +68,7 @@ fn main() {
                                 println!("{}: not found", query);
                             }
                         }
-                        Err(e) => eprintln!("cd: Unable to read PATH environment variable: {}", e),
+                        Err(e) => eprintln!("cd: unable to read PATH environment variable: {}", e),
                     }
                 }
             }
@@ -98,13 +98,13 @@ fn main() {
                                 eprintln!("cd: {} {}", &expanded, e)
                             }
                         }
-                        Err(e) => eprintln!("cd: Unable to read HOME environment variable: {}", e),
+                        Err(e) => eprintln!("cd: unable to read HOME environment variable: {}", e),
                     }
                 } else {
                     if !path.exists() {
-                        println!("cd: {}: No such file or directory", full_path);
+                        println!("cd: {}: no such file or directory", full_path);
                     } else if !path.is_dir() {
-                        println!("cd: {}: Not a directory", full_path);
+                        println!("cd: {}: not a directory", full_path);
                     } else {
                         if let Err(e) = env::set_current_dir(&full_path) {
                             eprintln!("cd: {} {}", path.display(), e);
