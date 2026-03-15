@@ -241,3 +241,45 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 
     Ok(parts)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_line;
+
+    #[test]
+    fn parse_line_splits_whitespace() {
+        assert_eq!(
+            parse_line("echo hello world").unwrap(),
+            vec!["echo", "hello", "world"]
+        );
+    }
+
+    #[test]
+    fn parse_line_keeps_quoted_segments() {
+        assert_eq!(
+            parse_line("echo \"hello world\" 'from rust'").unwrap(),
+            vec!["echo", "hello world", "from rust"]
+        );
+    }
+
+    #[test]
+    fn parse_line_handles_escaped_spaces() {
+        assert_eq!(
+            parse_line("touch hello\\ world.txt").unwrap(),
+            vec!["touch", "hello world.txt"]
+        );
+    }
+
+    #[test]
+    fn parse_line_rejects_unterminated_quotes() {
+        assert!(parse_line("echo \"hello").is_err());
+    }
+
+    #[test]
+    fn parse_line_preserves_empty_quoted_arguments() {
+        assert_eq!(
+            parse_line("echo \"\" '' done").unwrap(),
+            vec!["echo", "", "", "done"]
+        );
+    }
+}
