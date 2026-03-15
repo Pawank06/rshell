@@ -23,13 +23,20 @@ impl Shell {
                 .read_line(&mut input)
                 .expect("Unable to read line");
 
-            let parts: Vec<&str> = input.split_whitespace().collect();
+            let line = input.trim_end_matches(['\n', '\r']);
+            let parts = match parse_line(line) {
+                Ok(parts) => parts,
+                Err(err) => {
+                    eprintln!("parse error: {}", err);
+                    continue;
+                }
+            };
 
             if parts.is_empty() {
                 continue;
             }
 
-            let command = parts[0];
+            let command = parts[0].as_str();
 
             match command {
                 "exit" => break,
@@ -41,11 +48,11 @@ impl Shell {
                     if parts.len() < 2 {
                         continue;
                     }
-                    let query = &parts[1];
+                    let query = parts[1].as_str();
 
                     let builtin = ["exit", "echo", "type", "pwd", "cd"];
 
-                    if builtin.contains(query) {
+                    if builtin.contains(&query) {
                         println!("{} is a shell builtin", query);
                     } else {
                         match env::var("PATH") {
@@ -170,4 +177,67 @@ impl Shell {
         }
         Ok(())
     }
+}
+
+fn parse_line(input: &str) -> Result<Vec<String>, String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut chars = input.chars().peekable();
+    let mut quote = None;
+    let mut token_started = false;
+
+    while let Some(ch) = chars.next() {
+        match quote {
+            Some(active) => {
+                if ch == active {
+                    quote = None;
+                    token_started = true;
+                } else if ch == '\\' && active == '"' {
+                    match chars.next() {
+                        Some(next) => {
+                            current.push(next);
+                            token_started = true;
+                        }
+                        None => return Err("unterminated escape".to_string()),
+                    }
+                } else {
+                    current.push(ch);
+                    token_started = true;
+                }
+            }
+            None => match ch {
+                '\'' | '"' => {
+                    quote = Some(ch);
+                    token_started = true;
+                }
+                '\\' => match chars.next() {
+                    Some(next) => {
+                        current.push(next);
+                        token_started = true;
+                    }
+                    None => return Err("unterminated escape".to_string()),
+                },
+                ch if ch.is_whitespace() => {
+                    if token_started {
+                        parts.push(std::mem::take(&mut current));
+                        token_started = false;
+                    }
+                }
+                _ => {
+                    current.push(ch);
+                    token_started = true;
+                }
+            },
+        }
+    }
+
+    if quote.is_some() {
+        return Err("unterminated quote".to_string());
+    }
+
+    if token_started {
+        parts.push(current);
+    }
+
+    Ok(parts)
 }
