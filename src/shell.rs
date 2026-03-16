@@ -82,6 +82,12 @@ impl Shell {
                 }
                 Ok(true)
             }
+            "help" => {
+                for line in help_lines(parts.get(1).map(String::as_str)) {
+                    println!("{}", line);
+                }
+                Ok(true)
+            }
             "type" => {
                 if let Some(query) = parts.get(1) {
                     if builtin_names().contains(&query.as_str()) {
@@ -145,7 +151,24 @@ fn prompt() -> String {
 }
 
 fn builtin_names() -> &'static [&'static str] {
-    &["cd", "echo", "exit", "history", "pwd", "type"]
+    &["cd", "echo", "exit", "help", "history", "pwd", "type"]
+}
+
+fn help_lines(topic: Option<&str>) -> Vec<String> {
+    match topic {
+        Some("cd") => vec!["cd [dir]".to_string(), "change the current directory".to_string()],
+        Some("echo") => vec!["echo [args...]".to_string(), "print arguments to stdout".to_string()],
+        Some("exit") => vec!["exit [code]".to_string(), "exit the shell".to_string()],
+        Some("help") => vec!["help [command]".to_string(), "show builtin command help".to_string()],
+        Some("history") => vec!["history".to_string(), "print entered commands".to_string()],
+        Some("pwd") => vec!["pwd".to_string(), "print the current directory".to_string()],
+        Some("type") => vec!["type [command]".to_string(), "describe how a command is resolved".to_string()],
+        Some(other) => vec![format!("{}: no builtin help available", other)],
+        None => vec![
+            "builtins: cd, echo, exit, help, history, pwd, type".to_string(),
+            "use `help <command>` for details".to_string(),
+        ],
+    }
 }
 
 fn find_executable(command: &str) -> Option<PathBuf> {
@@ -283,7 +306,7 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{expand_path_from_home, find_executable_in_paths, parse_line};
+    use super::{expand_path_from_home, find_executable_in_paths, help_lines, parse_line};
     use std::env;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
@@ -358,6 +381,17 @@ mod tests {
 
         fs::remove_file(&binary).unwrap();
         fs::remove_dir(&base).unwrap();
+    }
+
+    #[test]
+    fn help_lines_lists_builtins() {
+        assert_eq!(
+            help_lines(None),
+            vec![
+                "builtins: cd, echo, exit, help, history, pwd, type",
+                "use `help <command>` for details"
+            ]
+        );
     }
 
     fn unique_name(prefix: &str) -> String {
