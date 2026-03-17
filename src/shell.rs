@@ -89,7 +89,7 @@ impl Shell {
                 Ok(true)
             }
             "type" => {
-                if let Some(query) = parts.get(1) {
+                for query in parts.iter().skip(1) {
                     if builtin_names().contains(&query.as_str()) {
                         println!("{} is a shell builtin", query);
                     } else if let Some(path) = find_executable(query) {
