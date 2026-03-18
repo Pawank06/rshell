@@ -6,16 +6,20 @@ use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
 
-pub struct Shell;
+pub struct Shell {
+    history: Vec<String>,
+}
 
 impl Shell {
     pub fn new() -> Self {
-        Self
+        Self {
+            history: Vec::new(),
+        }
     }
 
     pub fn run(&mut self) -> io::Result<()> {
         loop {
-            print!("$ ");
+            print!("{}", prompt());
             io::stdout().flush().unwrap();
 
             let mut input = String::new();
@@ -36,6 +40,8 @@ impl Shell {
                 continue;
             }
 
+            self.history.push(line.to_string());
+
             let command = parts[0].as_str();
 
             match command {
@@ -50,7 +56,7 @@ impl Shell {
                     }
                     let query = parts[1].as_str();
 
-                    let builtin = ["exit", "echo", "type", "pwd", "cd"];
+                    let builtin = ["exit", "echo", "type", "pwd", "cd", "history"];
 
                     if builtin.contains(&query) {
                         println!("{} is a shell builtin", query);
@@ -92,6 +98,11 @@ impl Shell {
                     Ok(val) => println!("{}", val.display()),
                     Err(e) => eprintln!("pwd: {}", e),
                 },
+                "history" => {
+                    for (index, entry) in self.history.iter().enumerate() {
+                        println!("{:>4}  {}", index + 1, entry);
+                    }
+                }
                 "cd" => {
                     if parts.len() < 2 {
                         continue;
@@ -177,6 +188,10 @@ impl Shell {
         }
         Ok(())
     }
+}
+
+fn prompt() -> String {
+    env::var("RSHELL_PROMPT").unwrap_or_else(|_| "$ ".to_string())
 }
 
 fn parse_line(input: &str) -> Result<Vec<String>, String> {
