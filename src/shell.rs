@@ -77,7 +77,9 @@ impl Shell {
                 Ok(true)
             }
             "history" => {
-                for (index, entry) in self.history.iter().enumerate() {
+                for (index, entry) in
+                    slice_history_entries(&self.history, parts.get(1).map(String::as_str))
+                {
                     println!("{:>4}  {}", index + 1, entry);
                 }
                 Ok(true)
@@ -169,6 +171,19 @@ fn help_lines(topic: Option<&str>) -> Vec<String> {
             "use `help <command>` for details".to_string(),
         ],
     }
+}
+
+fn slice_history_entries(history: &[String], limit: Option<&str>) -> Vec<(usize, String)> {
+    let limit = limit
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(history.len());
+    let start = history.len().saturating_sub(limit);
+    history
+        .iter()
+        .enumerate()
+        .skip(start)
+        .map(|(index, entry)| (index, entry.clone()))
+        .collect()
 }
 
 fn find_executable(command: &str) -> Option<PathBuf> {
@@ -306,7 +321,10 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{expand_path_from_home, find_executable_in_paths, help_lines, parse_line};
+    use super::{
+        expand_path_from_home, find_executable_in_paths, help_lines, parse_line,
+        slice_history_entries,
+    };
     use std::env;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
@@ -390,6 +408,22 @@ mod tests {
             vec![
                 "builtins: cd, echo, exit, help, history, pwd, type",
                 "use `help <command>` for details"
+            ]
+        );
+    }
+
+    #[test]
+    fn slice_history_entries_returns_tail() {
+        let history = vec![
+            "echo one".to_string(),
+            "echo two".to_string(),
+            "echo three".to_string(),
+        ];
+        assert_eq!(
+            slice_history_entries(&history, Some("2")),
+            vec![
+                (1, "echo two".to_string()),
+                (2, "echo three".to_string())
             ]
         );
     }
