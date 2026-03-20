@@ -58,42 +58,12 @@ impl Shell {
                     }
                     let query = parts[1].as_str();
 
-                    let builtin = ["exit", "echo", "type", "pwd", "cd", "history"];
-
-                    if builtin.contains(&query) {
+                    if builtin_names().contains(&query) {
                         println!("{} is a shell builtin", query);
+                    } else if let Some(path) = find_executable(query) {
+                        println!("{} is {}", query, path.display());
                     } else {
-                        match env::var("PATH") {
-                            Ok(val) => {
-                                let mut found = false;
-                                for dir in val.split(":") {
-                                    let full_path = Path::new(dir).join(query);
-                                    if !full_path.exists() {
-                                        continue;
-                                    }
-
-                                    let metadata = match fs::metadata(&full_path) {
-                                        Ok(m) => m,
-                                        Err(_) => continue,
-                                    };
-
-                                    let mode = metadata.permissions().mode();
-
-                                    if mode & 0o111 != 0 {
-                                        println!("{} is {}", query, full_path.display());
-                                        found = true;
-                                        break;
-                                    }
-                                }
-
-                                if !found {
-                                    println!("{}: not found", query);
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("cd: unable to read PATH environment variable: {}", e)
-                            }
-                        }
+                        println!("{}: not found", query);
                     }
                 }
                 "pwd" => match env::current_dir() {
@@ -110,53 +80,7 @@ impl Shell {
                         eprintln!("cd: {}", e);
                     }
                 }
-                _ => {
-                    if command.contains("/") {
-                        match Command::new(command).args(&parts[1..]).status() {
-                            Ok(_) => {}
-                            Err(e) => eprintln!("{}: {}", command, e),
-                        };
-
-                        continue;
-                    }
-
-                    match env::var("PATH") {
-                        Ok(val) => {
-                            let mut found = false;
-                            for dir in val.split(":") {
-                                let full_path = Path::new(&dir).join(command);
-
-                                if !full_path.exists() {
-                                    continue;
-                                }
-
-                                let metadata = match fs::metadata(&full_path) {
-                                    Ok(m) => m,
-                                    Err(_) => continue,
-                                };
-
-                                let mode = metadata.permissions().mode();
-
-                                if mode & 0o111 != 0 {
-                                    match Command::new(&full_path)
-                                        .arg0(command)
-                                        .args(&parts[1..])
-                                        .status()
-                                    {
-                                        Ok(_) => {}
-                                        Err(err) => eprintln!("{}: {}", command, err),
-                                    }
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if !found {
-                                println!("{}: command not found", command);
-                            }
-                        }
-                        Err(e) => println!("couldn't find val {}", e),
-                    }
-                }
+                _ => run_external(&parts),
             }
         }
         Ok(())
@@ -202,6 +126,61 @@ impl Shell {
 
 fn prompt() -> String {
     env::var("RSHELL_PROMPT").unwrap_or_else(|_| "$ ".to_string())
+}
+
+fn builtin_names() -> &'static [&'static str] {
+    &["cd", "echo", "exit", "history", "pwd", "type"]
+}
+
+fn find_executable(command: &str) -> Option<PathBuf> {
+    if command.contains('/') {
+        let path = PathBuf::from(command);
+        return is_executable(&path).then_some(path);
+    }
+
+    let path_value = env::var_os("PATH")?;
+    find_executable_in_paths(command, env::split_paths(&path_value))
+}
+
+fn find_executable_in_paths<I>(command: &str, paths: I) -> Option<PathBuf>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    for dir in paths {
+        let candidate = dir.join(command);
+        if is_executable(&candidate) {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+fn is_executable(path: &Path) -> bool {
+    let metadata = match fs::metadata(path) {
+        Ok(metadata) => metadata,
+        Err(_) => return false,
+    };
+
+    metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+}
+
+fn run_external(parts: &[String]) {
+    let command = &parts[0];
+    let executable = match find_executable(command) {
+        Some(path) => path,
+        None => {
+            eprintln!("{}: command not found", command);
+            return;
+        }
+    };
+
+    if let Err(err) = Command::new(&executable)
+        .arg0(command)
+        .args(&parts[1..])
+        .status()
+    {
+        eprintln!("{}: {}", command, err);
+    }
 }
 
 fn expand_path(input: &str) -> io::Result<PathBuf> {
@@ -288,7 +267,12 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_line;
+    use super::{expand_path_from_home, find_executable_in_paths, parse_line};
+    use std::env;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn parse_line_splits_whitespace() {
@@ -325,5 +309,46 @@ mod tests {
             parse_line("echo \"\" '' done").unwrap(),
             vec!["echo", "", "", "done"]
         );
+    }
+
+    #[test]
+    fn expand_path_expands_home_directory() {
+        assert_eq!(
+            expand_path_from_home("~", Path::new("/tmp/rshell-home")),
+            PathBuf::from("/tmp/rshell-home")
+        );
+        assert_eq!(
+            expand_path_from_home("~/docs", Path::new("/tmp/rshell-home")),
+            PathBuf::from("/tmp/rshell-home/docs")
+        );
+    }
+
+    #[test]
+    fn find_executable_locates_binary_from_path() {
+        let base = env::temp_dir().join(unique_name("rshell-test"));
+        let binary = base.join("demo-command");
+
+        fs::create_dir_all(&base).unwrap();
+        fs::write(&binary, "echo demo").unwrap();
+
+        let mut permissions = fs::metadata(&binary).unwrap().permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&binary, permissions).unwrap();
+
+        assert_eq!(
+            find_executable_in_paths("demo-command", [base.clone()]),
+            Some(binary.clone())
+        );
+
+        fs::remove_file(&binary).unwrap();
+        fs::remove_dir(&base).unwrap();
+    }
+
+    fn unique_name(prefix: &str) -> String {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        format!("{}-{}-{}", prefix, std::process::id(), nanos)
     }
 }
