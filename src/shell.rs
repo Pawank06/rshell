@@ -3,17 +3,19 @@ use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub struct Shell {
     history: Vec<String>,
+    previous_dir: Option<PathBuf>,
 }
 
 impl Shell {
     pub fn new() -> Self {
         Self {
             history: Vec::new(),
+            previous_dir: None,
         }
     }
 
@@ -104,37 +106,8 @@ impl Shell {
                     }
                 }
                 "cd" => {
-                    if parts.len() < 2 {
-                        continue;
-                    }
-
-                    let args = &parts[1..];
-                    let full_path = args.join(" ");
-                    let path = Path::new(&full_path);
-                    let path_str = full_path.as_str();
-                    if path_str == "~" || path_str.starts_with("~/") {
-                        match env::var("HOME") {
-                            Ok(val) => {
-                                let expanded = if path_str == "~" {
-                                    val.clone()
-                                } else {
-                                    path_str.replacen("~", &val, 1)
-                                };
-
-                                if let Err(e) = env::set_current_dir(&expanded) {
-                                    eprintln!("cd: {} {}", &expanded, e)
-                                }
-                            }
-                            Err(e) => {
-                                eprintln!("cd: unable to read HOME environment variable: {}", e)
-                            }
-                        }
-                    } else if !path.exists() {
-                        println!("cd: {}: no such file or directory", full_path);
-                    } else if !path.is_dir() {
-                        println!("cd: {}: not a directory", full_path);
-                    } else if let Err(e) = env::set_current_dir(&full_path) {
-                        eprintln!("cd: {} {}", path.display(), e);
+                    if let Err(e) = self.change_dir(&parts) {
+                        eprintln!("cd: {}", e);
                     }
                 }
                 _ => {
@@ -188,10 +161,66 @@ impl Shell {
         }
         Ok(())
     }
+
+    fn change_dir(&mut self, parts: &[String]) -> io::Result<()> {
+        let target = parts.get(1).map(|value| value.as_str()).unwrap_or("~");
+        let next_dir = if target == "-" {
+            match self.previous_dir.clone() {
+                Some(path) => {
+                    println!("{}", path.display());
+                    path
+                }
+                None => {
+                    eprintln!("cd: OLDPWD not set");
+                    return Ok(());
+                }
+            }
+        } else {
+            expand_path(target)?
+        };
+
+        if !next_dir.exists() {
+            eprintln!("cd: {}: no such file or directory", next_dir.display());
+            return Ok(());
+        }
+
+        if !next_dir.is_dir() {
+            eprintln!("cd: {}: not a directory", next_dir.display());
+            return Ok(());
+        }
+
+        let current_dir = env::current_dir()?;
+        if let Err(err) = env::set_current_dir(&next_dir) {
+            eprintln!("cd: {}: {}", next_dir.display(), err);
+            return Ok(());
+        }
+
+        self.previous_dir = Some(current_dir);
+        Ok(())
+    }
 }
 
 fn prompt() -> String {
     env::var("RSHELL_PROMPT").unwrap_or_else(|_| "$ ".to_string())
+}
+
+fn expand_path(input: &str) -> io::Result<PathBuf> {
+    let home = env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "HOME not set"))?;
+    Ok(expand_path_from_home(input, &home))
+}
+
+fn expand_path_from_home(input: &str, home: &Path) -> PathBuf {
+    if input == "~" {
+        return home.to_path_buf();
+    }
+
+    if let Some(rest) = input.strip_prefix("~/") {
+        return home.join(rest);
+    }
+
+    PathBuf::from(input)
 }
 
 fn parse_line(input: &str) -> Result<Vec<String>, String> {
