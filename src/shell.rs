@@ -77,6 +77,10 @@ impl Shell {
                 Ok(true)
             }
             "history" => {
+                if should_clear_history(parts.get(1).map(String::as_str)) {
+                    self.history.clear();
+                    return Ok(true);
+                }
                 for (index, entry) in
                     slice_history_entries(&self.history, parts.get(1).map(String::as_str))
                 {
@@ -162,7 +166,10 @@ fn help_lines(topic: Option<&str>) -> Vec<String> {
         Some("echo") => vec!["echo [args...]".to_string(), "print arguments to stdout".to_string()],
         Some("exit") => vec!["exit [code]".to_string(), "exit the shell".to_string()],
         Some("help") => vec!["help [command]".to_string(), "show builtin command help".to_string()],
-        Some("history") => vec!["history".to_string(), "print entered commands".to_string()],
+        Some("history") => vec![
+            "history [n|clear]".to_string(),
+            "print entered commands or clear the history".to_string(),
+        ],
         Some("pwd") => vec!["pwd".to_string(), "print the current directory".to_string()],
         Some("type") => vec!["type [command]".to_string(), "describe how a command is resolved".to_string()],
         Some(other) => vec![format!("{}: no builtin help available", other)],
@@ -171,6 +178,10 @@ fn help_lines(topic: Option<&str>) -> Vec<String> {
             "use `help <command>` for details".to_string(),
         ],
     }
+}
+
+fn should_clear_history(arg: Option<&str>) -> bool {
+    matches!(arg, Some("clear" | "-c"))
 }
 
 fn slice_history_entries(history: &[String], limit: Option<&str>) -> Vec<(usize, String)> {
@@ -323,7 +334,7 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 mod tests {
     use super::{
         expand_path_from_home, find_executable_in_paths, help_lines, parse_line,
-        slice_history_entries,
+        should_clear_history, slice_history_entries,
     };
     use std::env;
     use std::fs;
@@ -426,6 +437,13 @@ mod tests {
                 (2, "echo three".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn should_clear_history_recognizes_clear_flags() {
+        assert!(should_clear_history(Some("clear")));
+        assert!(should_clear_history(Some("-c")));
+        assert!(!should_clear_history(Some("2")));
     }
 
     fn unique_name(prefix: &str) -> String {
