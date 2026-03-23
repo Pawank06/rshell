@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{self, Command};
 
 pub struct Shell {
     history: Vec<String>,
@@ -22,14 +22,21 @@ impl Shell {
     pub fn run(&mut self) -> io::Result<()> {
         loop {
             print!("{}", prompt());
-            io::stdout().flush().unwrap();
+            io::stdout().flush()?;
 
             let mut input = String::new();
-            io::stdin()
-                .read_line(&mut input)
-                .expect("Unable to read line");
+            if io::stdin().read_line(&mut input)? == 0 {
+                println!();
+                break;
+            }
 
             let line = input.trim_end_matches(['\n', '\r']);
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            self.history.push(line.to_string());
+
             let parts = match parse_line(line) {
                 Ok(parts) => parts,
                 Err(err) => {
@@ -42,23 +49,42 @@ impl Shell {
                 continue;
             }
 
-            self.history.push(line.to_string());
+            if self.try_builtin(&parts)? {
+                continue;
+            }
 
-            let command = parts[0].as_str();
+            run_external(&parts);
+        }
 
-            match command {
-                "exit" => break,
-                "echo" => {
-                    let args = &parts[1..];
-                    println!("{}", args.join(" "));
+        Ok(())
+    }
+
+    fn try_builtin(&mut self, parts: &[String]) -> io::Result<bool> {
+        match parts[0].as_str() {
+            "exit" => {
+                let code = parts
+                    .get(1)
+                    .and_then(|value| value.parse::<i32>().ok())
+                    .unwrap_or(0);
+                process::exit(code);
+            }
+            "echo" => {
+                println!("{}", parts[1..].join(" "));
+                Ok(true)
+            }
+            "pwd" => {
+                println!("{}", env::current_dir()?.display());
+                Ok(true)
+            }
+            "history" => {
+                for (index, entry) in self.history.iter().enumerate() {
+                    println!("{:>4}  {}", index + 1, entry);
                 }
-                "type" => {
-                    if parts.len() < 2 {
-                        continue;
-                    }
-                    let query = parts[1].as_str();
-
-                    if builtin_names().contains(&query) {
+                Ok(true)
+            }
+            "type" => {
+                if let Some(query) = parts.get(1) {
+                    if builtin_names().contains(&query.as_str()) {
                         println!("{} is a shell builtin", query);
                     } else if let Some(path) = find_executable(query) {
                         println!("{} is {}", query, path.display());
@@ -66,24 +92,14 @@ impl Shell {
                         println!("{}: not found", query);
                     }
                 }
-                "pwd" => match env::current_dir() {
-                    Ok(val) => println!("{}", val.display()),
-                    Err(e) => eprintln!("pwd: {}", e),
-                },
-                "history" => {
-                    for (index, entry) in self.history.iter().enumerate() {
-                        println!("{:>4}  {}", index + 1, entry);
-                    }
-                }
-                "cd" => {
-                    if let Err(e) = self.change_dir(&parts) {
-                        eprintln!("cd: {}", e);
-                    }
-                }
-                _ => run_external(&parts),
+                Ok(true)
             }
+            "cd" => {
+                self.change_dir(parts)?;
+                Ok(true)
+            }
+            _ => Ok(false),
         }
-        Ok(())
     }
 
     fn change_dir(&mut self, parts: &[String]) -> io::Result<()> {
