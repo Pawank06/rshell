@@ -153,7 +153,11 @@ impl Shell {
 }
 
 fn prompt() -> String {
-    env::var("RSHELL_PROMPT").unwrap_or_else(|_| "$ ".to_string())
+    let template = env::var("RSHELL_PROMPT").unwrap_or_else(|_| "$ ".to_string());
+    let cwd = env::current_dir()
+        .map(|path| path.display().to_string())
+        .unwrap_or_else(|_| ".".to_string());
+    render_prompt(&template, &cwd)
 }
 
 fn builtin_names() -> &'static [&'static str] {
@@ -182,6 +186,10 @@ fn help_lines(topic: Option<&str>) -> Vec<String> {
 
 fn should_clear_history(arg: Option<&str>) -> bool {
     matches!(arg, Some("clear" | "-c"))
+}
+
+fn render_prompt(template: &str, cwd: &str) -> String {
+    template.replace("{cwd}", cwd)
 }
 
 fn slice_history_entries(history: &[String], limit: Option<&str>) -> Vec<(usize, String)> {
@@ -333,7 +341,7 @@ fn parse_line(input: &str) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        expand_path_from_home, find_executable_in_paths, help_lines, parse_line,
+        expand_path_from_home, find_executable_in_paths, help_lines, parse_line, render_prompt,
         should_clear_history, slice_history_entries,
     };
     use std::env;
@@ -444,6 +452,11 @@ mod tests {
         assert!(should_clear_history(Some("clear")));
         assert!(should_clear_history(Some("-c")));
         assert!(!should_clear_history(Some("2")));
+    }
+
+    #[test]
+    fn render_prompt_replaces_cwd_token() {
+        assert_eq!(render_prompt("{cwd} $ ", "/tmp/demo"), "/tmp/demo $ ");
     }
 
     fn unique_name(prefix: &str) -> String {
