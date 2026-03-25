@@ -12,11 +12,13 @@ if you are reading this early version of the readme, it means the project is sti
 
 current capabilities:
 
-- builtins for `cd`, `echo`, `exit`, `history`, `pwd`, and `type`
+- builtins for `cd`, `echo`, `exit`, `help`, `history`, `pwd`, and `type`
 - quoted and escaped argument parsing for commands like `echo "hello world"`
 - `cd ~`, `cd ~/path`, and `cd -`
+- `type` support for resolving multiple commands in one call
+- `history 5`, `history clear`, and `history -c`
 - executable lookup through `PATH`
-- a configurable prompt via the `RSHELL_PROMPT` environment variable
+- a configurable prompt via the `RSHELL_PROMPT` environment variable, including `{cwd}`
 
 run it with:
 
